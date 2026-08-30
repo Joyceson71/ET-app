@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const quizSchema = z.object({
-  answers: z.array(z.number().min(0).max(3)).length(3),
+  answers: z.array(z.number().min(0).max(3)),
   skipQuiz: z.boolean().optional().default(false),
 });
 
@@ -83,7 +83,8 @@ export async function POST(
     if (answers[i] === quizzes[i].answer) correct++;
   }
 
-  const passed = correct >= 2; // Pass with 2/3 correct
+  const passingScore = Math.max(1, Math.ceil(quizzes.length * 0.66));
+  const passed = correct >= passingScore;
   const firstTry = await isFirstAttempt(userId, quizzes[0].id);
 
   // Save quiz result

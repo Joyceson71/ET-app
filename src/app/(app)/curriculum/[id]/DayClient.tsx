@@ -300,8 +300,7 @@ export default function DayClient({ dayId }: { dayId: number }) {
                       Knowledge Check
                     </h2>
                     <p className="text-sm text-text-muted">
-                      Pass this quiz to unlock tomorrow's mission. (Requires 2/3
-                      correct)
+                      Pass this quiz to unlock tomorrow's mission.
                     </p>
                   </div>
                   {isCompleted && (
