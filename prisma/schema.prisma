@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id               String       @id @default(cuid())
+  email            String       @unique
+  password         String
+  name             String?
+  avatarUrl        String?
+  experienceLevel  String?      @default("beginner")
+  goal             String?
+  dailyCommitment  Int?         @default(1)
+  onboardingDone   Boolean      @default(false)
+  xp               Int          @default(0)
+  streak           Int          @default(0)
+  lastActiveDate   DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  progress         DayProgress[]
+  quizResults      QuizResult[]
+  notes            Note[]
+  bookmarks        Bookmark[]
+  quizSkips        QuizSkip[]
+}
+
+model Day {
+  id           Int           @id
+  phase        Int
+  title        String
+  concept      String
+  labUrl       String?
+  labPlatform  String?
+  xpReward     Int
+
+  resources    DayResource[]
+  quizzes      Quiz[]
+  progress     DayProgress[]
+  notes        Note[]
+  quizSkips    QuizSkip[]
+}
+
+model Resource {
+  id          Int           @id @default(autoincrement())
+  title       String
+  url         String
+  type        String
+  difficulty  String
+  description String?
+  isFree      Boolean       @default(true)
+  source      String?
+
+  dayResources DayResource[]
+  bookmarks    Bookmark[]
+}
+
+model DayResource {
+  dayId      Int
+  resourceId Int
+  day        Day      @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@id([dayId, resourceId])
+}
+
+model Quiz {
+  id          Int          @id @default(autoincrement())
+  dayId       Int
+  question    String
+  options     String       // Stored as JSON string
+  answer      Int
+  day         Day          @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  quizResults QuizResult[]
+}
+
+model DayProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  dayId       Int
+  status      String    @default("locked") // 'locked', 'available', 'in_progress', 'completed'
+  labDone     Boolean   @default(false)
+  completedAt DateTime?
+  xpEarned    Int       @default(0)
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day         Day       @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayId])
+}
+
+model QuizResult {
+  id          String   @id @default(cuid())
+  userId      String
+  dayId       Int
+  quizId      Int
+  passed      Boolean
+  score       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+model QuizSkip {
+  id        String   @id @default(cuid())
+  userId    String
+  dayId     Int
+  weekStart String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day       Day      @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  dayId     Int?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day       Day?     @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayId])
+}
+
+model Bookmark {
+  userId     String
+  resourceId Int
+  savedAt    DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@id([userId, resourceId])
+}
+
+model SkillNode {
+  id             String       @id
+  name           String
+  category       String
+  description    String
+  xpValue        Int
+  estimatedHours Int
+  dayIds         String       // JSON array of integers
+
+  // Self-relations for prerequisites
+  prerequisites  SkillPrerequisite[] @relation("NodeToPrerequisite")
+  dependentNodes SkillPrerequisite[] @relation("PrerequisiteToNode")
+}
+
+model SkillPrerequisite {
+  nodeId         String
+  prerequisiteId String
+
+  node         SkillNode @relation("NodeToPrerequisite", fields: [nodeId], references: [id], onDelete: Cascade)
+  prerequisite SkillNode @relation("PrerequisiteToNode", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  @@id([nodeId, prerequisiteId])
+}

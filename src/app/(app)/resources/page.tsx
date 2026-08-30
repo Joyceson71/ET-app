@@ -5,7 +5,7 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
-} from "@tanstack/react-query/build/modern";
+} from "@tanstack/react-query";
 import {
   Search,
   Filter,

@@ -1,44 +1,77 @@
-import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
+
+const updateSchema = z.object({
+  name: z.string().optional(),
+  experience_level: z.string().optional(),
+  goal: z.string().optional(),
+  daily_commitment: z.number().int().optional(),
+  onboarding_done: z.boolean().optional(),
+});
 
 export async function GET() {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+  });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  // Map to the format expected by frontend
+  const mappedUser = {
+    ...user,
+    experience_level: user.experienceLevel,
+    daily_commitment: user.dailyCommitment,
+    onboarding_done: user.onboardingDone,
+    avatar_url: user.avatarUrl,
+    last_active_date: user.lastActiveDate,
+    created_at: user.createdAt,
+  };
+
+  return NextResponse.json(mappedUser);
 }
 
 export async function PATCH(request: Request) {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
-  const allowedFields = ['name', 'avatar_url', 'experience_level', 'goal', 'daily_commitment', 'onboarding_done'];
-  const updates: Record<string, unknown> = {};
-  for (const key of allowedFields) {
-    if (key in body) updates[key] = body[key];
+  try {
+    const body = await request.json();
+    const data = updateSchema.parse(body);
+
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.experience_level !== undefined) updateData.experienceLevel = data.experience_level;
+    if (data.goal !== undefined) updateData.goal = data.goal;
+    if (data.daily_commitment !== undefined) updateData.dailyCommitment = data.daily_commitment;
+    if (data.onboarding_done !== undefined) updateData.onboardingDone = data.onboarding_done;
+
+    const user = await prisma.user.update({
+      where: { id: session.user.id },
+      data: updateData,
+    });
+
+    const mappedUser = {
+      ...user,
+      experience_level: user.experienceLevel,
+      daily_commitment: user.dailyCommitment,
+      onboarding_done: user.onboardingDone,
+      avatar_url: user.avatarUrl,
+      last_active_date: user.lastActiveDate,
+      created_at: user.createdAt,
+    };
+
+    return NextResponse.json(mappedUser);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
-
-  const { data, error } = await supabase
-    .from('users')
-    .update(updates)
-    .eq('id', user.id)
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
 }

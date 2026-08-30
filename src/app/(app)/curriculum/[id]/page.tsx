@@ -1,34 +1,41 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import DayClient from './DayClient';
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import DayClient from "./DayClient";
 
 export default async function DayPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
   const dayId = parseInt(id);
-  
-  if (isNaN(dayId)) redirect('/curriculum');
+
+  if (isNaN(dayId)) redirect("/curriculum");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!user) redirect('/login');
+  if (!user) redirect("/login");
 
   // Verify access (locked days shouldn't be viewable)
   if (dayId > 1) {
     const { data: progress } = await supabase
-      .from('day_progress')
-      .select('status')
-      .eq('user_id', user.id)
-      .eq('day_id', dayId)
+      .from("day_progress")
+      .select("status")
+      .eq("user_id", user.id)
+      .eq("day_id", dayId)
       .single();
 
-    if (!progress || (progress.status !== 'available' && progress.status !== 'completed' && progress.status !== 'in_progress')) {
+    if (
+      !progress ||
+      (progress.status !== "available" &&
+        progress.status !== "completed" &&
+        progress.status !== "in_progress")
+    ) {
       // Day is locked
-      redirect('/curriculum');
+      redirect("/curriculum");
     }
   }
 

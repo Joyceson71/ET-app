@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query/build/modern";
+import { useQuery } from "@tanstack/react-query";
 import * as d3 from "d3";
 import { PHASE_COLORS } from "@/types";
 

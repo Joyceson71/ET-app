@@ -5,7 +5,7 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
-} from "@tanstack/react-query/build/modern";
+} from "@tanstack/react-query";
 import { Search, ExternalLink, Bookmark, Trash2, PenTool } from "lucide-react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";

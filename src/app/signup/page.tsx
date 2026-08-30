@@ -1,48 +1,48 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import Link from 'next/link';
-import { Terminal, Lock, Mail, User } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import { Terminal, Lock, Mail, User } from "lucide-react";
+import { motion } from "framer-motion";
+import { signIn } from "next-auth/react";
 
 export default function SignupPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
-    const supabase = createClient();
-    
-    // In a real app, you might want to create the user profile first or rely on the Postgres trigger
-    const { error: authError } = await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: {
-        data: { name } // Pass name so the trigger can use it
-      }
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
     });
-    
-    if (authError) {
-      setError(authError.message);
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error || "Failed to create account");
       setLoading(false);
     } else {
-      // For this project, we auto-confirm emails (configured in Supabase)
-      // So we can try logging them in directly, or just redirect
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (!signInError) {
-        router.push('/dashboard');
+      const signInRes = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      if (!signInRes?.error) {
+        router.push("/dashboard");
         router.refresh();
       } else {
-        router.push('/login?message=Check your email to verify');
+        router.push("/login?message=Check your email to verify");
       }
     }
   };
@@ -54,14 +54,18 @@ export default function SignupPage() {
         <span className="font-mono font-bold text-text-primary">HackPath_</span>
       </Link>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
         <div className="card p-8">
-          <h1 className="text-2xl font-mono font-bold mb-2">Initialize Profile</h1>
-          <p className="text-text-muted text-sm mb-6">Create your account to start the 120-day curriculum.</p>
+          <h1 className="text-2xl font-mono font-bold mb-2">
+            Initialize Profile
+          </h1>
+          <p className="text-text-muted text-sm mb-6">
+            Create your account to start the 120-day curriculum.
+          </p>
 
           <form onSubmit={handleSignup} className="space-y-4">
             {error && (
@@ -71,28 +75,36 @@ export default function SignupPage() {
             )}
 
             <div className="space-y-1">
-              <label className="text-sm font-mono text-text-muted">Handle (Name)</label>
+              <label className="text-sm font-mono text-text-muted">
+                Handle (Name)
+              </label>
               <div className="relative">
-                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                <input 
-                  type="text" 
+                <User
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+                />
+                <input
+                  type="text"
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   className="w-full bg-surface border border-border rounded-md pl-10 pr-3 py-2 text-sm focus:border-accent-primary focus:outline-none transition-colors"
                   required
                   placeholder="zero_cool"
                 />
               </div>
             </div>
-            
+
             <div className="space-y-1">
               <label className="text-sm font-mono text-text-muted">Email</label>
               <div className="relative">
-                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                <input 
-                  type="email" 
+                <Mail
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+                />
+                <input
+                  type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-surface border border-border rounded-md pl-10 pr-3 py-2 text-sm focus:border-accent-primary focus:outline-none transition-colors"
                   required
                   placeholder="hacker@example.com"
@@ -101,13 +113,18 @@ export default function SignupPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-mono text-text-muted">Password</label>
+              <label className="text-sm font-mono text-text-muted">
+                Password
+              </label>
               <div className="relative">
-                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                <input 
-                  type="password" 
+                <Lock
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+                />
+                <input
+                  type="password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-surface border border-border rounded-md pl-10 pr-3 py-2 text-sm focus:border-accent-primary focus:outline-none transition-colors"
                   required
                   minLength={8}
@@ -116,17 +133,24 @@ export default function SignupPage() {
               </div>
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="w-full btn-primary py-2.5 mt-2 flex justify-center items-center"
               disabled={loading}
             >
-              {loading ? <span className="animate-pulse">Executing...</span> : 'Create Account'}
+              {loading ? (
+                <span className="animate-pulse">Executing...</span>
+              ) : (
+                "Create Account"
+              )}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-text-muted">
-            Already have an account? <Link href="/login" className="text-accent-primary hover:underline">Login</Link>
+            Already have an account?{" "}
+            <Link href="/login" className="text-accent-primary hover:underline">
+              Login
+            </Link>
           </div>
         </div>
       </motion.div>

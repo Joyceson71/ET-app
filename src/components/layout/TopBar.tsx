@@ -2,7 +2,7 @@
 
 import { Menu, Search, LogOut } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
-import { createClient } from '@/lib/supabase/client';
+import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -11,8 +11,7 @@ export default function TopBar() {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await signOut({ redirect: false });
     setUser(null);
     router.push('/');
   };

@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { Terminal, Lock, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { signIn } from 'next-auth/react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -19,11 +19,14 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    const res = await signIn('credentials', {
+      email,
+      password,
+      redirect: false,
+    });
     
-    if (authError) {
-      setError(authError.message);
+    if (res?.error) {
+      setError(res.error);
       setLoading(false);
     } else {
       router.push('/dashboard');
@@ -34,10 +37,9 @@ export default function LoginPage() {
   const demoLogin = async () => {
     setEmail('demo@hackpath.io');
     setPassword('password123');
-    const supabase = createClient();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: 'demo@hackpath.io', password: 'password123' });
-    if (!error) {
+    const res = await signIn('credentials', { email: 'demo@hackpath.io', password: 'password123', redirect: false });
+    if (!res?.error) {
       router.push('/dashboard');
       router.refresh();
     } else {

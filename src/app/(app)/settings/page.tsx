@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAppStore } from "@/store/app-store";
-import { useMutation } from "@tanstack/react-query/build/modern";
+import { useMutation } from "@tanstack/react-query";
 import { Save, User, Target, Clock, Shield } from "lucide-react";
 
 export default function SettingsPage() {
