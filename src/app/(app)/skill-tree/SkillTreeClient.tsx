@@ -65,8 +65,8 @@ export default function SkillTreeClient() {
     );
     const links: d3.SimulationLinkDatum<d3.SimulationNodeDatum & Node>[] =
       data.edges.map((d: any) => ({
-        source: d.source_id,
-        target: d.target_id,
+        source: d.source || d.source_id,
+        target: d.target || d.target_id,
       }));
 
     // Define simulation
