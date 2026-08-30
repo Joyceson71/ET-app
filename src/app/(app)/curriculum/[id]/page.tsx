@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import DayClient from "./DayClient";
 
@@ -12,21 +14,21 @@ export default async function DayPage({
 
   if (isNaN(dayId)) redirect("/curriculum");
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
 
-  if (!user) redirect("/login");
+  if (!session?.user) redirect("/login");
 
   // Verify access (locked days shouldn't be viewable)
   if (dayId > 1) {
-    const { data: progress } = await supabase
-      .from("day_progress")
-      .select("status")
-      .eq("user_id", user.id)
-      .eq("day_id", dayId)
-      .single();
+    const progress = await prisma.dayProgress.findUnique({
+      where: {
+        userId_dayId: {
+          userId: session.user.id,
+          dayId: dayId
+        }
+      },
+      select: { status: true }
+    });
 
     if (
       !progress ||

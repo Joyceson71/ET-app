@@ -1,37 +1,48 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const supabase = await createClient();
-
   const [nodesResult, edgesResult] = await Promise.all([
-    supabase.from("skill_nodes").select("*"),
-    supabase.from("skill_edges").select("*"),
+    prisma.skillNode.findMany(),
+    prisma.skillPrerequisite.findMany(),
   ]);
 
-  // Get user progress to determine node status
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
   let userProgress: Record<number, string> = {};
 
-  if (user) {
-    const { data: progress } = await supabase
-      .from("day_progress")
-      .select("day_id, status")
-      .eq("user_id", user.id);
+  if (session?.user) {
+    const progress = await prisma.dayProgress.findMany({
+      where: { userId: session.user.id },
+      select: { dayId: true, status: true }
+    });
 
     if (progress) {
       userProgress = Object.fromEntries(
-        progress.map((p) => [p.day_id, p.status]),
+        progress.map((p) => [p.dayId, p.status]),
       );
     }
   }
 
   // Calculate node status based on linked days
-  const nodes = (nodesResult.data || []).map((node) => {
-    const dayIds: number[] = node.day_ids || [];
-    if (dayIds.length === 0) return { ...node, status: "locked" };
+  const nodes = nodesResult.map((node) => {
+    let dayIds: number[] = [];
+    try {
+      dayIds = JSON.parse(node.dayIds) as number[];
+    } catch(e) {
+      dayIds = [];
+    }
+    
+    if (dayIds.length === 0) {
+      return { 
+        ...node, 
+        xp_value: node.xpValue,
+        estimated_hours: node.estimatedHours,
+        day_ids: dayIds,
+        status: "locked" 
+      };
+    }
 
     const completedCount = dayIds.filter(
       (id) => userProgress[id] === "completed",
@@ -48,11 +59,22 @@ export async function GET() {
     else if (inProgressCount > 0) status = "in_progress";
     else if (availableCount > 0) status = "available";
 
-    return { ...node, status };
+    return { 
+      ...node, 
+      xp_value: node.xpValue,
+      estimated_hours: node.estimatedHours,
+      day_ids: dayIds,
+      status 
+    };
   });
+
+  const edges = edgesResult.map((edge) => ({
+    source: edge.prerequisiteId,
+    target: edge.nodeId,
+  }));
 
   return NextResponse.json({
     nodes,
-    edges: nodesResult.error ? [] : edgesResult.data || [],
+    edges,
   });
 }

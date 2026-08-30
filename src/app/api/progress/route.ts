@@ -1,29 +1,31 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { PHASE_COLORS, PHASE_TITLES } from "@/types";
 
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user)
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const [userResult, progressResult] = await Promise.all([
-    supabase
-      .from("users")
-      .select("xp, streak, last_active_date, created_at")
-      .eq("id", user.id)
-      .single(),
-    supabase
-      .from("day_progress")
-      .select("day_id, status, completed_at")
-      .eq("user_id", user.id),
+  const [userData, progressResult] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { xp: true, streak: true, lastActiveDate: true, createdAt: true }
+    }),
+    prisma.dayProgress.findMany({
+      where: { userId: session.user.id },
+      select: { dayId: true, status: true, completedAt: true }
+    }),
   ]);
 
-  const userData = userResult.data;
-  const progress = progressResult.data || [];
+  const progress = progressResult.map(p => ({
+    day_id: p.dayId,
+    status: p.status,
+    completed_at: p.completedAt ? p.completedAt.toISOString() : null
+  }));
 
   const completedDays = progress.filter((p) => p.status === "completed").length;
   const inProgressDays = progress.filter(

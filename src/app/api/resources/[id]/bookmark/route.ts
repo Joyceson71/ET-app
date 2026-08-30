@@ -1,37 +1,51 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user)
+  const resourceId = parseInt(id, 10);
+  
+  if (isNaN(resourceId)) {
+    return NextResponse.json({ error: "Invalid resource ID" }, { status: 400 });
+  }
+
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Check if bookmarked
-  const { data: existing } = await supabase
-    .from("bookmarks")
-    .select("resource_id")
-    .eq("user_id", user.id)
-    .eq("resource_id", id)
-    .single();
+  const existing = await prisma.bookmark.findUnique({
+    where: {
+      userId_resourceId: {
+        userId: session.user.id,
+        resourceId: resourceId
+      }
+    }
+  });
 
   if (existing) {
-    await supabase
-      .from("bookmarks")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("resource_id", id);
+    await prisma.bookmark.delete({
+      where: {
+        userId_resourceId: {
+          userId: session.user.id,
+          resourceId: resourceId
+        }
+      }
+    });
     return NextResponse.json({ bookmarked: false });
   } else {
-    await supabase
-      .from("bookmarks")
-      .insert({ user_id: user.id, resource_id: id });
+    await prisma.bookmark.create({
+      data: {
+        userId: session.user.id,
+        resourceId: resourceId
+      }
+    });
     return NextResponse.json({ bookmarked: true });
   }
 }

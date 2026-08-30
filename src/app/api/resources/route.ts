@@ -1,55 +1,50 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
-  const supabase = await createClient();
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
   const difficulty = searchParams.get("difficulty");
-  const phase = searchParams.get("phase");
   const isFree = searchParams.get("free");
   const q = searchParams.get("q");
 
-  let query = supabase.from("resources").select("*, day_resources(day_id)");
+  const whereClause: any = {};
+  if (type) whereClause.type = type;
+  if (difficulty) whereClause.difficulty = difficulty;
+  if (isFree !== null) whereClause.isFree = isFree === "true";
+  if (q) whereClause.title = { contains: q };
 
-  if (type) query = query.eq("type", type);
-  if (difficulty) query = query.eq("difficulty", difficulty);
-  if (isFree !== null) query = query.eq("is_free", isFree === "true");
-  if (q) query = query.ilike("title", `%${q}%`);
+  try {
+    const data = await prisma.resource.findMany({
+      where: whereClause,
+      orderBy: { title: "asc" },
+      include: {
+        dayResources: true,
+      }
+    });
 
-  const { data, error } = await query.order("title");
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const session = await getServerSession(authOptions);
+    let bookmarkSet = new Set<number>();
 
-  // Get user bookmarks if authenticated
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) {
-    const { data: bookmarks } = await supabase
-      .from("bookmarks")
-      .select("resource_id")
-      .eq("user_id", user.id);
+    if (session?.user) {
+      const bookmarks = await prisma.bookmark.findMany({
+        where: { userId: session.user.id },
+        select: { resourceId: true }
+      });
+      bookmarkSet = new Set(bookmarks.map((b) => b.resourceId));
+    }
 
-    const bookmarkSet = new Set((bookmarks || []).map((b) => b.resource_id));
-    const resourcesWithBookmarks = (data || []).map((r) => ({
+    const resourcesFormatted = data.map((r) => ({
       ...r,
-      day_ids: (r.day_resources || []).map(
-        (dr: { day_id: number }) => dr.day_id,
-      ),
+      is_free: r.isFree,
+      day_ids: r.dayResources.map((dr) => dr.dayId),
       is_bookmarked: bookmarkSet.has(r.id),
     }));
 
-    return NextResponse.json(resourcesWithBookmarks);
+    return NextResponse.json(resourcesFormatted);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  return NextResponse.json(
-    (data || []).map((r) => ({
-      ...r,
-      day_ids: (r.day_resources || []).map(
-        (dr: { day_id: number }) => dr.day_id,
-      ),
-      is_bookmarked: false,
-    })),
-  );
 }

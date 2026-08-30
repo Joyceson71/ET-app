@@ -1,6 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const quizSchema = z.object({
@@ -14,16 +15,16 @@ export async function POST(
 ) {
   const { id } = await params;
   const dayId = parseInt(id);
-  const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user)
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const userId = session.user.id;
   const body = await request.json();
   const parsed = quizSchema.safeParse(body);
+  
   if (!parsed.success)
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 
@@ -32,12 +33,14 @@ export async function POST(
   // Handle quiz skip (once per week)
   if (skipQuiz) {
     const weekStart = getWeekStart();
-    const { data: existingSkip } = await supabase
-      .from("quiz_skips")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("week_start", weekStart)
-      .single();
+    const existingSkip = await prisma.quizSkip.findUnique({
+      where: {
+        userId_weekStart: {
+          userId: userId,
+          weekStart: weekStart,
+        }
+      }
+    });
 
     if (existingSkip) {
       return NextResponse.json(
@@ -46,10 +49,12 @@ export async function POST(
       );
     }
 
-    await supabase
-      .from("quiz_skips")
-      .insert({ user_id: user.id, day_id: dayId, week_start: weekStart });
-    await unlockNextDay(supabase, user.id, dayId);
+    await prisma.quizSkip.create({
+      data: { userId, dayId, weekStart }
+    });
+    
+    await unlockNextDay(userId, dayId);
+    
     return NextResponse.json({
       passed: true,
       skipped: true,
@@ -58,13 +63,12 @@ export async function POST(
     });
   }
 
-  // Get quizzes WITH answers (server-side only)
-  const serviceClient = await createServiceClient();
-  const { data: quizzes } = await serviceClient
-    .from("quizzes")
-    .select("id, answer")
-    .eq("day_id", dayId)
-    .order("id");
+  // Get quizzes WITH answers
+  const quizzes = await prisma.quiz.findMany({
+    where: { dayId },
+    select: { id: true, answer: true },
+    orderBy: { id: "asc" }
+  });
 
   if (!quizzes || quizzes.length === 0) {
     return NextResponse.json(
@@ -80,15 +84,17 @@ export async function POST(
   }
 
   const passed = correct >= 2; // Pass with 2/3 correct
-  const firstTry = await isFirstAttempt(supabase, user.id, quizzes[0].id);
+  const firstTry = await isFirstAttempt(userId, quizzes[0].id);
 
   // Save quiz result
-  await supabase.from("quiz_results").insert({
-    user_id: user.id,
-    day_id: dayId,
-    quiz_id: quizzes[0].id,
-    passed,
-    score: correct,
+  await prisma.quizResult.create({
+    data: {
+      userId,
+      dayId,
+      quizId: quizzes[0].id,
+      passed,
+      score: correct,
+    }
   });
 
   if (passed) {
@@ -98,12 +104,12 @@ export async function POST(
 
     // Update user XP and unlock next day
     await Promise.all([
-      supabase.rpc("increment_xp", {
-        user_id_param: user.id,
-        xp_amount: xpEarned,
+      prisma.user.update({
+        where: { id: userId },
+        data: { xp: { increment: xpEarned } }
       }),
-      updateDayProgress(supabase, user.id, dayId, xpEarned),
-      unlockNextDay(supabase, user.id, dayId),
+      updateDayProgress(userId, dayId, xpEarned),
+      unlockNextDay(userId, dayId),
     ]);
 
     return NextResponse.json({
@@ -124,53 +130,58 @@ export async function POST(
 }
 
 async function isFirstAttempt(
-  supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-  quizId: string,
+  quizId: number,
 ) {
-  const { data } = await supabase
-    .from("quiz_results")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("quiz_id", quizId)
-    .limit(1);
-  return !data || data.length === 0;
+  const result = await prisma.quizResult.findFirst({
+    where: { userId, quizId }
+  });
+  return !result;
 }
 
 async function updateDayProgress(
-  supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   dayId: number,
   xpEarned: number,
 ) {
-  await supabase.from("day_progress").upsert(
-    {
-      user_id: userId,
-      day_id: dayId,
-      status: "completed",
-      completed_at: new Date().toISOString(),
-      xp_earned: xpEarned,
+  await prisma.dayProgress.upsert({
+    where: {
+      userId_dayId: { userId, dayId }
     },
-    { onConflict: "user_id,day_id" },
-  );
+    update: {
+      status: "completed",
+      completedAt: new Date(),
+      xpEarned, // This might just set it, but we can do increment if we want. The original code just set it.
+    },
+    create: {
+      userId,
+      dayId,
+      status: "completed",
+      completedAt: new Date(),
+      xpEarned,
+    }
+  });
 }
 
 async function unlockNextDay(
-  supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   currentDayId: number,
 ) {
   const nextDayId = currentDayId + 1;
   if (nextDayId > 120) return;
 
-  await supabase.from("day_progress").upsert(
-    {
-      user_id: userId,
-      day_id: nextDayId,
-      status: "available",
+  // We use upsert to only create if it doesn't exist, or just leave it if it does
+  await prisma.dayProgress.upsert({
+    where: {
+      userId_dayId: { userId, dayId: nextDayId }
     },
-    { onConflict: "user_id,day_id", ignoreDuplicates: true },
-  );
+    update: {}, // Do nothing if it already exists
+    create: {
+      userId,
+      dayId: nextDayId,
+      status: "available",
+    }
+  });
 }
 
 function getWeekStart(): string {

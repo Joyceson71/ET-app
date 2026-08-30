@@ -1,5 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _request: Request,
@@ -7,54 +9,102 @@ export async function GET(
 ) {
   const { id } = await params;
   const dayId = parseInt(id);
-  const supabase = await createClient();
+
+  if (isNaN(dayId)) {
+    return NextResponse.json({ error: "Invalid day ID" }, { status: 400 });
+  }
 
   // Get day with resources and quizzes
-  const [dayResult, resourcesResult, quizzesResult] = await Promise.all([
-    supabase.from("days").select("*").eq("id", dayId).single(),
-    supabase
-      .from("day_resources")
-      .select("resource_id, resources(*)")
-      .eq("day_id", dayId),
-    supabase
-      .from("quizzes")
-      .select("id, question, options, day_id") // exclude answer!
-      .eq("day_id", dayId),
-  ]);
+  const dayResult = await prisma.day.findUnique({
+    where: { id: dayId },
+    include: {
+      resources: {
+        include: {
+          resource: true,
+        },
+      },
+      quizzes: {
+        select: {
+          id: true,
+          question: true,
+          options: true,
+          dayId: true,
+          // Exclude answer!
+        },
+      },
+    },
+  });
 
-  if (dayResult.error)
+  if (!dayResult)
     return NextResponse.json({ error: "Day not found" }, { status: 404 });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
   let progress = null;
   let notes = null;
 
-  if (user) {
+  if (session?.user) {
     const [progressResult, notesResult] = await Promise.all([
-      supabase
-        .from("day_progress")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("day_id", dayId)
-        .single(),
-      supabase
-        .from("notes")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("day_id", dayId)
-        .single(),
+      prisma.dayProgress.findUnique({
+        where: {
+          userId_dayId: {
+            userId: session.user.id,
+            dayId: dayId
+          }
+        }
+      }),
+      prisma.note.findUnique({
+        where: {
+          userId_dayId: {
+            userId: session.user.id,
+            dayId: dayId
+          }
+        }
+      })
     ]);
-    progress = progressResult.data;
-    notes = notesResult.data;
+    
+    if (progressResult) {
+      progress = {
+        ...progressResult,
+        user_id: progressResult.userId,
+        day_id: progressResult.dayId,
+        lab_done: progressResult.labDone,
+        xp_earned: progressResult.xpEarned,
+        completed_at: progressResult.completedAt?.toISOString() || null
+      };
+    }
+    
+    if (notesResult) {
+      notes = [
+        {
+          ...notesResult,
+          user_id: notesResult.userId,
+          day_id: notesResult.dayId,
+          created_at: notesResult.createdAt.toISOString(),
+          updated_at: notesResult.updatedAt.toISOString(),
+        }
+      ]; // UI expects array based on DayWithExtras type notes: Note[]
+    }
   }
 
+  const formattedDay = {
+    ...dayResult,
+    lab_url: dayResult.labUrl,
+    lab_platform: dayResult.labPlatform,
+    xp_reward: dayResult.xpReward,
+  };
+
   return NextResponse.json({
-    ...dayResult.data,
-    resources: (resourcesResult.data || []).map((r) => r.resources),
-    quizzes: quizzesResult.data || [],
+    ...formattedDay,
+    resources: dayResult.resources.map((r) => ({
+      ...r.resource,
+      is_free: r.resource.isFree,
+    })),
+    quizzes: dayResult.quizzes.map(q => ({
+      ...q,
+      day_id: q.dayId,
+      options: JSON.parse(q.options)
+    })),
     progress,
-    notes,
+    notes: notes || [],
   });
 }
