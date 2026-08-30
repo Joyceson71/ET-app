@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Shield, ChevronRight, Zap, GitBranch, Trophy, BookOpen, Lock, Unlock, Activity } from 'lucide-react';
+import { Shield, ChevronRight, Zap, GitBranch, Trophy, BookOpen, Lock, Unlock, Activity, Download } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'HackPath — 120-Day Ethical Hacking Mastery Program',
@@ -78,6 +78,10 @@ export default function LandingPage() {
             <a href="#features" className="text-text-muted hover:text-text-primary text-sm transition-colors">Features</a>
             <Link href="/login" className="btn-ghost text-sm">Sign In</Link>
             <Link href="/signup" className="btn-primary text-sm" id="hero-cta-nav">Start Free</Link>
+            <a href="/hackpath.apk" download className="btn-secondary text-sm hidden sm:flex items-center gap-2">
+              <Download size={16} />
+              App
+            </a>
           </nav>
         </div>
       </header>
@@ -110,6 +114,10 @@ export default function LandingPage() {
             <Link href="/login" className="btn-secondary text-base px-8 py-3" id="hero-demo-btn">
               Demo: demo@hackpath.io
             </Link>
+            <a href="/hackpath.apk" download className="btn-secondary text-base px-8 py-3 flex items-center gap-2">
+              <Download size={18} />
+              Download APK
+            </a>
           </div>
 
           {/* Stats row */}
@@ -120,7 +128,7 @@ export default function LandingPage() {
               { value: '50+', label: 'Skill Nodes' },
               { value: '80+', label: 'Resources' },
             ].map(({ value, label }) => (
-              <div key={label} className="card px-4 py-5 text-center">
+              <div key={label} className="clay-card ultra-glow px-4 py-5 text-center">
                 <div className="text-3xl font-mono font-bold text-accent-primary mb-1">{value}</div>
                 <div className="text-xs text-text-muted">{label}</div>
               </div>
@@ -141,7 +149,7 @@ export default function LandingPage() {
             {phases.map(({ phase, title, days, desc, color }) => (
               <div
                 key={phase}
-                className="card p-6 group hover:border-opacity-60 transition-all duration-300"
+                className="clay-card p-6 group hover:border-opacity-60 transition-all duration-300"
                 style={{ '--phase-color': color } as React.CSSProperties}
               >
                 <div className="flex items-start gap-4">
@@ -176,7 +184,7 @@ export default function LandingPage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map(({ icon: Icon, title, desc, color }) => (
-              <div key={title} className="card p-6 group">
+              <div key={title} className="clay-card p-6 group">
                 <div
                   className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
                   style={{ background: `${color}15`, border: `1px solid ${color}30` }}
@@ -193,7 +201,7 @@ export default function LandingPage() {
 
         {/* XP Level Progression */}
         <section className="relative z-10 max-w-7xl mx-auto px-6 py-20" aria-labelledby="levels-heading">
-          <div className="card p-8 text-center">
+          <div className="clay-card p-8 text-center">
             <h2 id="levels-heading" className="text-2xl font-mono font-bold text-text-primary mb-2">
               <Zap size={20} className="inline mr-2 text-accent-secondary" aria-hidden="true" />
               Level Progression
@@ -225,7 +233,7 @@ export default function LandingPage() {
         {/* CTA */}
         <section className="relative z-10 max-w-4xl mx-auto px-6 py-20 text-center" aria-labelledby="cta-heading">
           <div
-            className="card p-12"
+            className="clay-card ultra-glow p-12"
             style={{ background: 'linear-gradient(135deg, #00FF9C08 0%, #7B61FF08 100%)', borderColor: '#00FF9C20' }}
           >
             <h2 id="cta-heading" className="text-3xl md:text-4xl font-mono font-bold text-text-primary mb-4">

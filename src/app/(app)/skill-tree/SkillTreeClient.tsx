@@ -137,10 +137,10 @@ export default function SkillTreeClient() {
     // Node icons/text (simplified to first letter for visual)
     node
       .append("text")
-      .text((d) => d.label.substring(0, 2).toUpperCase())
+      .text((d: any) => (d.label || d.name || "??").substring(0, 2).toUpperCase())
       .attr("text-anchor", "middle")
       .attr("dy", ".3em")
-      .attr("fill", (d) => (d.status === "locked" ? "#5A6070" : "#E8EAF0"))
+      .attr("fill", (d: any) => (d.status === "locked" ? "#5A6070" : "#E8EAF0"))
       .attr("font-family", "var(--font-inter)")
       .attr("font-size", "14px")
       .attr("font-weight", "bold");
@@ -148,10 +148,10 @@ export default function SkillTreeClient() {
     // Label text outside circle
     node
       .append("text")
-      .text((d) => d.label)
+      .text((d: any) => d.label || d.name || "Unknown")
       .attr("text-anchor", "middle")
       .attr("dy", 45)
-      .attr("fill", (d) => (d.status === "locked" ? "#5A6070" : "#E8EAF0"))
+      .attr("fill", (d: any) => (d.status === "locked" ? "#5A6070" : "#E8EAF0"))
       .attr("font-family", "var(--font-inter)")
       .attr("font-size", "12px");
 
@@ -159,8 +159,8 @@ export default function SkillTreeClient() {
     node
       .append("title")
       .text(
-        (d) =>
-          `${d.label}\nCategory: ${d.category}\nStatus: ${d.status.toUpperCase()}\nDays: ${d.day_ids.join(", ")}`,
+        (d: any) =>
+          `${d.label || d.name || "Unknown"}\nCategory: ${d.category}\nStatus: ${d.status.toUpperCase()}\nDays: ${d.day_ids?.join(", ") || ""}`,
       );
 
     simulation.on("tick", () => {

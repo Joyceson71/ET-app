@@ -23,6 +23,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { PHASE_COLORS, PHASE_TITLES } from "@/types";
+import TerminalSimulator from "@/components/labs/TerminalSimulator";
 
 export default function DayClient({ dayId }: { dayId: number }) {
   const router = useRouter();
@@ -197,30 +198,10 @@ export default function DayClient({ dayId }: { dayId: number }) {
                   Practical Application
                 </h2>
                 <p className="text-text-muted mb-6">
-                  Apply today's concepts in a sandboxed environment on{" "}
-                  {day.lab_platform}.
+                  Apply today's concepts in the internal simulated terminal.
                 </p>
 
-                <div className="flex flex-col sm:flex-row gap-4 items-center p-6 bg-surface-light rounded-lg border border-border">
-                  <div className="w-12 h-12 bg-[#1f2330] rounded-lg flex items-center justify-center shrink-0">
-                    <Terminal size={24} style={{ color }} />
-                  </div>
-                  <div className="flex-1 text-center sm:text-left">
-                    <h3 className="font-semibold">{day.lab_platform} Room</h3>
-                    <p className="text-sm text-text-muted">
-                      Target room is ready for deployment.
-                    </p>
-                  </div>
-                  <a
-                    href={day.lab_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary py-2 px-6 flex items-center gap-2 w-full sm:w-auto justify-center"
-                    style={{ backgroundColor: color, color: "#000" }}
-                  >
-                    Deploy Machine <ExternalLink size={16} />
-                  </a>
-                </div>
+                <TerminalSimulator dayId={dayId} />
               </div>
 
               {day.resources && day.resources.length > 0 && (
