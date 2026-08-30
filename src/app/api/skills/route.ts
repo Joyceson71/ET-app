@@ -68,10 +68,13 @@ export async function GET() {
     };
   });
 
-  const edges = edgesResult.map((edge) => ({
-    source: edge.prerequisiteId,
-    target: edge.nodeId,
-  }));
+  const validNodeIds = new Set(nodesResult.map(n => n.id));
+  const edges = edgesResult
+    .filter(edge => validNodeIds.has(edge.nodeId) && validNodeIds.has(edge.prerequisiteId))
+    .map((edge) => ({
+      source: edge.prerequisiteId,
+      target: edge.nodeId,
+    }));
 
   return NextResponse.json({
     nodes,
