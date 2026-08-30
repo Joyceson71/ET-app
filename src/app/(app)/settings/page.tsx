@@ -146,11 +146,11 @@ export default function SettingsPage() {
                 type="number"
                 min="1"
                 max="5"
-                value={formData.daily_commitment}
+                value={Number.isNaN(formData.daily_commitment) ? "" : formData.daily_commitment}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    daily_commitment: parseInt(e.target.value),
+                    daily_commitment: e.target.value === "" ? NaN : parseInt(e.target.value),
                   })
                 }
                 className="w-full bg-surface-light border border-border rounded-md px-4 py-2 text-sm focus:border-accent-primary focus:outline-none transition-colors"
