@@ -33,7 +33,7 @@ export async function POST(
     }
 
     // Flag is correct, update DayProgress
-    const progress = await prisma.dayProgress.findUnique({
+    let progress = await prisma.dayProgress.findUnique({
       where: {
         userId_dayId: {
           userId: session.user.id,
@@ -42,26 +42,34 @@ export async function POST(
       },
     });
 
-    if (!progress) {
-      return NextResponse.json({ error: "Progress not found" }, { status: 404 });
-    }
-
-    if (progress.labDone) {
+    if (progress && progress.labDone) {
       return NextResponse.json({ message: "Lab already completed!" });
     }
 
-    await prisma.dayProgress.update({
-      where: {
-        userId_dayId: {
+    if (!progress) {
+      progress = await prisma.dayProgress.create({
+        data: {
           userId: session.user.id,
           dayId: dayId,
+          status: "in_progress",
+          labDone: true,
+          xpEarned: 25,
+        }
+      });
+    } else {
+      progress = await prisma.dayProgress.update({
+        where: {
+          userId_dayId: {
+            userId: session.user.id,
+            dayId: dayId,
+          },
         },
-      },
-      data: {
-        labDone: true,
-        xpEarned: progress.xpEarned + 25, // award 25 XP for finding the flag
-      },
-    });
+        data: {
+          labDone: true,
+          xpEarned: progress.xpEarned + 25,
+        },
+      });
+    }
 
     // Update user's total XP
     await prisma.user.update({
