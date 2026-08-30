@@ -11,6 +11,7 @@ import {
   Clock,
   ArrowRight,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -49,124 +50,127 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card p-5">
-          <div className="flex items-center gap-3 mb-2 text-text-muted">
-            <Target size={18} className="text-accent-primary" />
-            <span className="font-mono text-sm">Mission Progress</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 auto-rows-[minmax(160px,auto)] gap-6">
+        
+        {/* HERO WIDGET - Next Objective */}
+        <div className="clay-card ultra-glow col-span-1 md:col-span-2 xl:col-span-2 row-span-2 p-8 flex flex-col justify-between">
+          {nextDay <= 120 ? (
+            <>
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-primary/10 text-accent-primary text-xs font-mono font-bold">
+                    <Sparkles size={14} /> ACTIVE MISSION
+                  </div>
+                  <span className="text-text-muted font-mono text-sm">DAY {nextDay}</span>
+                </div>
+                <h3 className="text-3xl font-bold mb-4">Continue Training Phase</h3>
+                <p className="text-text-muted text-lg max-w-md">
+                  You are cleared to proceed with Day {nextDay}. Ensure you have your lab environment ready for deployment.
+                </p>
+              </div>
+              <div className="mt-8">
+                <Link
+                  href={`/curriculum/${nextDay}`}
+                  className="btn-primary w-full md:w-auto"
+                >
+                  Launch Mission <ArrowRight size={18} />
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <Trophy size={64} className="text-accent-secondary mb-6 drop-shadow-[0_0_15px_rgba(123,97,255,0.5)]" />
+              <h3 className="text-3xl font-bold mb-2">Curriculum Complete</h3>
+              <p className="text-text-muted">You have successfully conquered all 120 days of training.</p>
+            </div>
+          )}
+        </div>
+
+        {/* PROGRESS WIDGET */}
+        <div className="clay-card col-span-1 md:col-span-1 xl:col-span-1 row-span-1 p-6 flex flex-col justify-between group">
+          <div className="flex items-center gap-3 text-text-muted">
+            <div className="p-2 rounded-xl bg-accent-primary/10 text-accent-primary group-hover:bg-accent-primary group-hover:text-background transition-colors">
+              <Target size={20} />
+            </div>
+            <span className="font-mono text-sm font-semibold tracking-wide">PROGRESS</span>
           </div>
-          <div className="text-3xl font-mono font-bold">
-            {daysCompleted}{" "}
-            <span className="text-lg text-text-muted">/ 120</span>
-          </div>
-          <div className="xp-bar mt-3">
-            <div
-              className="xp-bar-fill"
-              style={{ width: `${(daysCompleted / 120) * 100}%` }}
-            />
+          <div>
+            <div className="text-4xl font-mono font-bold mb-2 text-accent-primary">
+              {daysCompleted} <span className="text-xl text-text-muted">/ 120</span>
+            </div>
+            <div className="xp-bar h-2 bg-surface-2 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-accent-primary rounded-full"
+                style={{ width: `${(daysCompleted / 120) * 100}%`, boxShadow: '0 0 10px rgba(0,255,156,0.5)' }}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="card p-5">
-          <div className="flex items-center gap-3 mb-2 text-text-muted">
-            <Trophy size={18} className="text-[#FFD700]" />
-            <span className="font-mono text-sm">Total XP</span>
+        {/* XP WIDGET */}
+        <div className="clay-card col-span-1 md:col-span-1 xl:col-span-1 row-span-1 p-6 flex flex-col justify-between group">
+          <div className="flex items-center gap-3 text-text-muted">
+            <div className="p-2 rounded-xl bg-[#FFD700]/10 text-[#FFD700] group-hover:bg-[#FFD700] group-hover:text-background transition-colors">
+              <Trophy size={20} />
+            </div>
+            <span className="font-mono text-sm font-semibold tracking-wide">TOTAL XP</span>
           </div>
-          <div className="text-3xl font-mono font-bold">
+          <div className="text-4xl font-mono font-bold text-[#FFD700]">
             {progress?.total_xp?.toLocaleString() || 0}
           </div>
         </div>
 
-        <div className="card p-5">
-          <div className="flex items-center gap-3 mb-2 text-text-muted">
-            <Flame size={18} className="text-warning" />
-            <span className="font-mono text-sm">Active Streak</span>
+        {/* STREAK WIDGET */}
+        <div className="clay-card col-span-1 md:col-span-1 xl:col-span-1 row-span-1 p-6 flex flex-col justify-between group">
+          <div className="flex items-center gap-3 text-text-muted">
+            <div className="p-2 rounded-xl bg-warning/10 text-warning group-hover:bg-warning group-hover:text-background transition-colors">
+              <Flame size={20} />
+            </div>
+            <span className="font-mono text-sm font-semibold tracking-wide">STREAK</span>
           </div>
-          <div className="text-3xl font-mono font-bold">
-            {progress?.streak || 0}{" "}
-            <span className="text-lg text-text-muted">Days</span>
+          <div className="text-4xl font-mono font-bold text-warning">
+            {progress?.streak || 0} <span className="text-xl text-warning/60">Days</span>
           </div>
         </div>
 
-        <div className="card p-5">
-          <div className="flex items-center gap-3 mb-2 text-text-muted">
-            <Clock size={18} className="text-accent-secondary" />
-            <span className="font-mono text-sm">Est. Completion</span>
+        {/* ETA WIDGET */}
+        <div className="clay-card col-span-1 md:col-span-2 xl:col-span-1 row-span-1 p-6 flex flex-col justify-between group">
+          <div className="flex items-center gap-3 text-text-muted">
+            <div className="p-2 rounded-xl bg-accent-secondary/10 text-accent-secondary group-hover:bg-accent-secondary group-hover:text-background transition-colors">
+              <Clock size={20} />
+            </div>
+            <span className="font-mono text-sm font-semibold tracking-wide">ETA</span>
           </div>
-          <div className="text-xl font-mono font-bold mt-2">
+          <div className="text-2xl font-mono font-bold text-accent-secondary">
             {progress?.estimated_completion
               ? new Date(progress.estimated_completion).toLocaleDateString()
               : "N/A"}
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Next Mission */}
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-lg font-mono font-semibold flex items-center gap-2">
-            <span className="text-accent-primary">{">"}</span> Next Objective
+        {/* PHASE BREAKDOWN - Wide Widget */}
+        <div className="clay-card col-span-1 md:col-span-3 xl:col-span-2 row-span-2 p-6 flex flex-col">
+          <h2 className="text-lg font-mono font-bold mb-6 flex items-center gap-2 text-text-muted">
+            PHASE BREAKDOWN
           </h2>
-          {nextDay <= 120 ? (
-            <div className="card p-6 border-accent-primary/20 bg-accent-primary/5">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <div className="text-xs font-mono text-accent-primary mb-1">
-                    DAY {nextDay}
-                  </div>
-                  <h3 className="text-xl font-semibold">
-                    Continue Training Phase
-                  </h3>
-                </div>
-              </div>
-              <p className="text-text-muted mb-6">
-                You are cleared to proceed with Day {nextDay}. Ensure you have
-                your lab environment ready.
-              </p>
-              <Link
-                href={`/curriculum/${nextDay}`}
-                className="btn-primary py-2 px-6 inline-flex items-center gap-2"
-              >
-                Launch Mission <ArrowRight size={16} />
-              </Link>
-            </div>
-          ) : (
-            <div className="card p-6 border-accent-secondary/20 bg-accent-secondary/5 text-center">
-              <Trophy
-                size={48}
-                className="mx-auto text-accent-secondary mb-4"
-              />
-              <h3 className="text-2xl font-bold mb-2">Curriculum Complete</h3>
-              <p className="text-text-muted">
-                You have successfully completed all 120 days of training.
-              </p>
-            </div>
-          )}
-
-          {/* Phase Progress */}
-          <h2 className="text-lg font-mono font-semibold flex items-center gap-2 mt-8">
-            <span className="text-accent-primary">{">"}</span> Phase Breakdown
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
             {progress?.phase_progress?.map((phase: any) => (
-              <div key={phase.phase} className="card p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span
-                    className="text-sm font-mono font-semibold"
-                    style={{ color: phase.color }}
-                  >
+              <div key={phase.phase} className="p-4 rounded-2xl bg-surface-2 border border-white/5">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-sm font-bold" style={{ color: phase.color }}>
                     {phase.title}
                   </span>
-                  <span className="text-xs text-text-muted font-mono">
+                  <span className="text-xs text-text-muted font-mono font-semibold">
                     {phase.completed} / {phase.total}
                   </span>
                 </div>
-                <div className="h-1.5 w-full bg-surface-light rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-background rounded-full overflow-hidden shadow-inner">
                   <div
                     className="h-full rounded-full transition-all duration-1000"
                     style={{
                       width: `${(phase.completed / phase.total) * 100}%`,
                       backgroundColor: phase.color,
+                      boxShadow: `0 0 10px ${phase.color}80`
                     }}
                   />
                 </div>
@@ -175,65 +179,38 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Activity Heatmap */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-mono font-semibold flex items-center gap-2">
-            <span className="text-accent-primary">{">"}</span> Activity Log
-          </h2>
-          <div className="card p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Calendar size={18} className="text-text-muted" />
-              <span className="text-sm text-text-muted">Last 90 Days</span>
+        {/* ACTIVITY HEATMAP - Wide Widget */}
+        <div className="clay-card col-span-1 md:col-span-3 xl:col-span-2 row-span-2 p-6 flex flex-col">
+          <div className="flex items-center justify-between mb-6 text-text-muted">
+            <h2 className="text-lg font-mono font-bold">ACTIVITY LOG</h2>
+            <div className="flex items-center gap-2">
+              <Calendar size={18} />
+              <span className="text-sm font-semibold">90 Days</span>
             </div>
+          </div>
 
-            <div className="flex flex-wrap gap-1">
+          <div className="flex-1 flex flex-col justify-center">
+            <div className="flex flex-wrap gap-1.5 justify-start">
               {progress?.calendar_data?.map((day: any, i: number) => (
                 <div
                   key={day.date}
-                  className={`w-3 h-3 rounded-sm ${day.status === "completed" ? "bg-accent-primary" : "bg-surface-light"}`}
+                  className={`w-3.5 h-3.5 rounded-sm transition-transform hover:scale-150 cursor-pointer ${day.status === "completed" ? "bg-accent-primary shadow-[0_0_8px_rgba(0,255,156,0.6)]" : "bg-surface-2"}`}
                   title={`${day.date}: ${day.status}`}
                 />
               ))}
             </div>
-
-            <div className="flex items-center gap-4 mt-6 text-xs text-text-muted justify-end font-mono">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-sm bg-surface-light" /> Inactive
+            
+            <div className="flex items-center gap-4 mt-6 text-xs text-text-muted justify-end font-mono font-semibold">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm bg-surface-2" /> INACTIVE
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-sm bg-accent-primary" /> Active
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm bg-accent-primary shadow-[0_0_5px_rgba(0,255,156,0.5)]" /> ACTIVE
               </div>
-            </div>
-          </div>
-
-          <div className="card p-6 mt-4">
-            <h3 className="text-sm font-mono font-semibold mb-4 text-text-muted">
-              Recent Achievements
-            </h3>
-            <div className="space-y-3">
-              {daysCompleted > 0 ? (
-                <div className="flex items-start gap-3">
-                  <CheckCircle2
-                    size={16}
-                    className="text-accent-primary mt-0.5"
-                  />
-                  <div>
-                    <div className="text-sm font-medium">
-                      Day {daysCompleted} Completed
-                    </div>
-                    <div className="text-xs text-text-muted font-mono">
-                      Earned XP
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-text-muted text-center py-4">
-                  No recent activity. Start Day 1!
-                </div>
-              )}
             </div>
           </div>
         </div>
+        
       </div>
     </div>
   );
