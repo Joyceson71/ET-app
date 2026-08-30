@@ -33,6 +33,7 @@ export default function DayClient({ dayId }: { dayId: number }) {
   );
   const [quizAnswers, setQuizAnswers] = useState<number[]>([0, 0, 0]);
   const [notes, setNotes] = useState("");
+  const [flagInput, setFlagInput] = useState("");
 
   const { data: day, isLoading } = useQuery({
     queryKey: ["day", dayId],
@@ -67,6 +68,29 @@ export default function DayClient({ dayId }: { dayId: number }) {
       });
       if (!res.ok) throw new Error("Failed to save notes");
       return res.json();
+    },
+  });
+
+  const submitFlag = useMutation({
+    mutationFn: async (flag: string) => {
+      const res = await fetch(`/api/days/${dayId}/lab`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ flag }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Flag submission failed");
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["day", dayId] });
+      queryClient.invalidateQueries({ queryKey: ["progress-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["days"] });
+      setFlagInput("");
+      alert(data.message);
+    },
+    onError: (err: any) => {
+      alert(err.message);
     },
   });
 
@@ -202,6 +226,31 @@ export default function DayClient({ dayId }: { dayId: number }) {
                 </p>
 
                 <TerminalSimulator dayId={dayId} />
+
+                <div className="mt-8 pt-6 border-t border-border">
+                  <h3 className="text-lg font-mono font-bold mb-3">Submit Flag</h3>
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      placeholder="FLAG{...}"
+                      value={flagInput}
+                      onChange={(e) => setFlagInput(e.target.value)}
+                      className="flex-1 bg-surface border border-border rounded-md px-4 py-2 font-mono text-sm focus:border-accent-primary focus:outline-none transition-colors"
+                    />
+                    <button
+                      onClick={() => submitFlag.mutate(flagInput)}
+                      disabled={submitFlag.isPending || !flagInput}
+                      className="btn-primary py-2 px-6"
+                    >
+                      {submitFlag.isPending ? "Submitting..." : "Submit"}
+                    </button>
+                  </div>
+                  {day.progress?.labDone && (
+                    <div className="mt-3 text-sm text-accent-primary flex items-center gap-2 font-mono">
+                      <CheckCircle2 size={16} /> Lab Completed!
+                    </div>
+                  )}
+                </div>
               </div>
 
               {day.resources && day.resources.length > 0 && (

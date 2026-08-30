@@ -114,7 +114,13 @@ async function main() {
       
       await prisma.day.upsert({
         where: { id: dayId },
-        update: {},
+        update: {
+          title: dayData.title,
+          concept: dayData.concept,
+          labUrl: dayData.labUrl,
+          labPlatform: dayData.labPlatform,
+          xpReward: 50 + (p.phase * 10),
+        },
         create: {
           id: dayId,
           phase: p.phase,
@@ -128,7 +134,11 @@ async function main() {
 
       await prisma.quiz.upsert({
         where: { id: dayId }, 
-        update: {},
+        update: {
+          question: dayData.question,
+          options: JSON.stringify(dayData.options),
+          answer: dayData.answer,
+        },
         create: {
           id: dayId,
           dayId: dayId,
