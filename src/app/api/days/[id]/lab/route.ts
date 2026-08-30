@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { labScenarios } from "@/lib/labScenarios";
+import { updateUserStreak } from "@/lib/streak";
 
 export async function POST(
   req: Request,
@@ -76,6 +77,8 @@ export async function POST(
       where: { id: session.user.id },
       data: { xp: { increment: 25 } },
     });
+
+    await updateUserStreak(session.user.id);
 
     return NextResponse.json({ message: "Flag accepted! Lab complete. +25 XP", success: true });
   } catch (error) {

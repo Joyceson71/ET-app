@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { updateUserStreak } from "@/lib/streak";
 
 const quizSchema = z.object({
   answers: z.array(z.number().min(0).max(3)),
@@ -111,6 +112,7 @@ export async function POST(
       }),
       updateDayProgress(userId, dayId, xpEarned),
       unlockNextDay(userId, dayId),
+      updateUserStreak(userId),
     ]);
 
     return NextResponse.json({
