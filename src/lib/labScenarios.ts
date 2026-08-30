@@ -4,26 +4,33 @@ export interface LabScenario {
   expectedCommands: {
     command: string;
     output: string[];
+    unlocksStage?: number;
+    requiresStage?: number;
   }[];
   flag: string;
 }
 
 export const labScenarios: Record<number, LabScenario> = {
-  // Day 1: Linux Basics
+  // Day 1: Linux Basics (Multi-stage)
   1: {
     id: 1,
     welcomeMessage: [
       "Welcome to HackPath Simulated Lab - Day 1.",
       "Target IP: 10.10.10.1",
-      "Goal: Execute basic linux commands to find the flag.",
+      "Goal: Find the hidden user, switch to them, and read the flag.",
       "Type 'help' for available commands."
     ],
     expectedCommands: [
-      { command: "help", output: ["Available commands: help, clear, whoami, ls, cat"] },
-      { command: "whoami", output: ["root"] },
-      { command: "ls", output: ["flag.txt", "notes.txt"] },
-      { command: "cat notes.txt", output: ["Check the other file for the flag."] },
-      { command: "cat flag.txt", output: ["FLAG{linux_b4s1cs_m4st3r}"] }
+      { command: "help", output: ["Available commands: help, clear, whoami, ls, ls -la, cat, su"] },
+      { command: "whoami", output: ["www-data"] },
+      { command: "ls", output: ["index.html", "backup.zip"] },
+      { command: "ls -la", output: ["drwxr-xr-x 2 root root 4096 .", "-rw-r--r-- 1 root root 120 index.html", "-rw-r--r-- 1 root root 20 .hidden_user.txt"] },
+      { command: "cat .hidden_user.txt", output: ["username: sysadmin", "password: password123"], unlocksStage: 1 },
+      { command: "su sysadmin", output: ["Password: ", "su: Authentication failure"], requiresStage: 0 },
+      { command: "su sysadmin", output: ["Password: ", "sysadmin@hackpath:/var/www$ "], requiresStage: 1, unlocksStage: 2 },
+      { command: "whoami", output: ["sysadmin"], requiresStage: 2 },
+      { command: "ls", output: ["flag.txt"], requiresStage: 2 },
+      { command: "cat flag.txt", output: ["FLAG{linux_b4s1cs_m4st3r}"], requiresStage: 2 }
     ],
     flag: "FLAG{linux_b4s1cs_m4st3r}"
   },
@@ -34,14 +41,15 @@ export const labScenarios: Record<number, LabScenario> = {
     welcomeMessage: [
       "Welcome to HackPath Simulated Lab - Day 2.",
       "Target IP: 10.10.10.2",
-      "Goal: Scan the target to find the open port and retrieve the flag.",
+      "Goal: Verify host is alive, scan for ports, and curl the hidden service.",
     ],
     expectedCommands: [
       { command: "help", output: ["Available commands: help, clear, ping, nmap, curl"] },
-      { command: "ping 10.10.10.2", output: ["PING 10.10.10.2: 56 data bytes", "64 bytes from 10.10.10.2: icmp_seq=1 ttl=64 time=0.043 ms"] },
-      { command: "nmap 10.10.10.2", output: ["Starting Nmap...", "PORT STATE SERVICE", "8080/tcp open http-proxy"] },
+      { command: "ping 10.10.10.2", output: ["PING 10.10.10.2: 56 data bytes", "64 bytes from 10.10.10.2: icmp_seq=1 ttl=64 time=0.043 ms"], unlocksStage: 1 },
+      { command: "nmap 10.10.10.2", output: ["Starting Nmap...", "Host seems down. If it is really up, but blocking ping probes, try -Pn"] },
+      { command: "nmap -Pn 10.10.10.2", output: ["Starting Nmap...", "PORT STATE SERVICE", "8080/tcp open http-proxy"], requiresStage: 1, unlocksStage: 2 },
       { command: "curl http://10.10.10.2", output: ["Connection refused."] },
-      { command: "curl http://10.10.10.2:8080", output: ["<h1>Admin Dashboard</h1>", "<!-- FLAG{n3tw0rk_sc4nn3r} -->"] }
+      { command: "curl http://10.10.10.2:8080", output: ["<h1>Admin Dashboard</h1>", "<!-- FLAG{n3tw0rk_sc4nn3r} -->"], requiresStage: 2 }
     ],
     flag: "FLAG{n3tw0rk_sc4nn3r}"
   },

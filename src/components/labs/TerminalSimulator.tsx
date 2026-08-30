@@ -38,6 +38,7 @@ export default function TerminalSimulator({ dayId }: { dayId: number }) {
     scenario.welcomeMessage.map((msg) => ({ type: "output", content: msg }))
   );
   const [currentInput, setCurrentInput] = useState("");
+  const [currentStage, setCurrentStage] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,9 +68,16 @@ export default function TerminalSimulator({ dayId }: { dayId: number }) {
       );
 
       if (matchedCommand) {
-        matchedCommand.output.forEach((outLine) => {
-          newLines.push({ type: "output", content: outLine });
-        });
+        if (matchedCommand.requiresStage !== undefined && currentStage < matchedCommand.requiresStage) {
+           newLines.push({ type: "output", content: `bash: ${cmd.split(" ")[0]}: Connection timed out or prerequisites not met.` });
+        } else {
+           matchedCommand.output.forEach((outLine) => {
+             newLines.push({ type: "output", content: outLine });
+           });
+           if (matchedCommand.unlocksStage !== undefined && matchedCommand.unlocksStage > currentStage) {
+             setCurrentStage(matchedCommand.unlocksStage);
+           }
+        }
       } else {
         newLines.push({ type: "output", content: `bash: ${cmd.split(" ")[0]}: command not found or not supported in this lab` });
       }
